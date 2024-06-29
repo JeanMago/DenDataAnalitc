@@ -1,0 +1,39 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+from statsmodels.tsa.statespace.sarimax import SARIMAX
+
+# Carregar os dados do arquivo CSV
+file_path = 'dados_agrupados_mensal.csv'
+data = pd.read_csv(file_path, encoding='ISO-8859-1')
+
+# Criar uma coluna de data a partir de Ano e Mes
+data['Data'] = pd.to_datetime(data['Ano'].astype(str) + '-' + data['Mes'].astype(str) + '-01')
+
+# Definir a série temporal
+time_series = data.set_index('Data')['Notificacoes']
+
+# Ajustar o modelo SARIMA
+model = SARIMAX(time_series, order=(1, 1, 1), seasonal_order=(1, 1, 1, 12), enforce_invertibility=False)
+results = model.fit()
+
+# Fazer previsões para os próximos 5 anos (60 meses)
+forecast = results.get_forecast(steps=60)
+
+# Extrair o índice das previsões
+forecast_index = pd.date_range(time_series.index[-1], periods=60, freq='M')[1:]
+
+# Garantir que a série de previsões tenha o mesmo tamanho que o índice de previsão
+forecast_series = forecast.predicted_mean[:len(forecast_index)]
+
+# Plotar a série temporal e as previsões
+plt.figure(figsize=(12, 6))
+plt.plot(time_series, label='Dados Históricos')
+plt.plot(forecast_index, forecast_series, label='Previsão', color='red')
+plt.title('Previsão de Notificações de Surtos')
+plt.xlabel('Data')
+plt.ylabel('Número de Notificações')
+plt.legend()
+plt.show()
+
+# Exibir as previsões
+print(forecast_series)
